@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Atlantico Preventivi</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Prototype for Atlantico Traslochi preventivo automation.">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#app" aria-label="Atlantico Preventivi">
+        <img src="assets/atlantico-logo.png" alt="Atlantico Traslochi">
+      </a>
+      <nav class="top-actions" aria-label="Azioni principali">
+        <span class="sync-dot" id="syncStatus">Bozza sincronizzata</span>
+        <button class="button ghost" id="resetDemo" type="button">Reset demo</button>
+        <button class="button primary" id="printQuote" type="button">Stampa PDF</button>
+      </nav>
+    </header>
+
+    <main class="app" id="app">
+      <aside class="intake-panel" aria-label="Dati preventivo">
+        <div class="panel-heading">
+          <p class="eyebrow">Preventivo rapido</p>
+          <h1>Nuova richiesta</h1>
+        </div>
+
+        <form id="quoteForm">
+          <section class="form-section" aria-labelledby="clienteTitle">
+            <div class="section-title">
+              <span class="step">1</span>
+              <h2 id="clienteTitle">Cliente</h2>
+            </div>
+            <label>
+              Nome cliente
+              <input name="clientName" autocomplete="name" value="Giulia Bianchi">
+            </label>
+            <div class="field-grid">
+              <label>
+                Email
+                <input name="clientEmail" type="email" value="giulia.bianchi@example.com">
+              </label>
+              <label>
+                Telefono
+                <input name="clientPhone" type="tel" value="+39 333 123 4567">
+              </label>
+            </div>
+          </section>
+
+          <section class="form-section" aria-labelledby="traslocoTitle">
+            <div class="section-title">
+              <span class="step">2</span>
+              <h2 id="traslocoTitle">Trasloco</h2>
+            </div>
+            <label>
+              Tipologia
+              <select name="serviceType">
+                <option value="full">Chiavi in mano</option>
+                <option value="standard" selected>Standard</option>
+                <option value="transport">Solo trasporto</option>
+                <option value="lift">Noleggio autoscala</option>
+                <option value="disposal">Sgombero / smaltimento</option>
+              </select>
+            </label>
+            <div class="field-grid">
+              <label>
+                Data
+                <input name="moveDate" type="date" value="2026-06-18">
+              </label>
+              <label>
+                Validita giorni
+                <input name="validDays" type="number" min="1" max="90" value="15">
+              </label>
+            </div>
+            <label>
+              Partenza
+              <input name="origin" value="Via Lecco 18, Monza">
+            </label>
+            <div class="field-grid thirds">
+              <label>
+                Piano
+                <input name="originFloor" type="number" min="0" max="20" value="3">
+              </label>
+              <label class="select-field">
+                Ascensore
+                <select name="originElevator">
+                  <option value="yes">Si</option>
+                  <option value="no" selected>No</option>
+                </select>
+              </label>
+              <label>
+                CAP
+                <input name="originZip" inputmode="numeric" value="20900">
+              </label>
+            </div>
+            <label>
+              Arrivo
+              <input name="destination" value="Via Torino 9, Milano">
+            </label>
+            <div class="field-grid thirds">
+              <label>
+                Piano
+                <input name="destFloor" type="number" min="0" max="20" value="2">
+              </label>
+              <label class="select-field">
+                Ascensore
+                <select name="destElevator">
+                  <option value="yes" selected>Si</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
+              <label>
+                CAP
+                <input name="destZip" inputmode="numeric" value="20123">
+              </label>
+            </div>
+          </section>
+
+          <section class="form-section" aria-labelledby="serviziTitle">
+            <div class="section-title">
+              <span class="step">3</span>
+              <h2 id="serviziTitle">Servizi</h2>
+            </div>
+            <div class="field-grid thirds">
+              <label>
+                Volume mc
+                <input name="volume" type="number" min="1" max="120" value="22">
+              </label>
+              <label>
+                Scatole
+                <input name="boxes" type="number" min="0" max="300" value="38">
+              </label>
+              <label>
+                Km stimati
+                <input name="distance" type="number" min="0" max="2000" value="24">
+              </label>
+            </div>
+            <div class="toggle-grid" role="group" aria-label="Opzioni aggiuntive">
+              <label><input type="checkbox" name="packing" checked> Imballaggio fragili</label>
+              <label><input type="checkbox" name="assembly" checked> Smontaggio e rimontaggio</label>
+              <label><input type="checkbox" name="liftAccess"> Autoscala</label>
+              <label><input type="checkbox" name="permits"> Permessi suolo pubblico</label>
+              <label><input type="checkbox" name="storage"> Deposito mobili</label>
+              <label><input type="checkbox" name="urgent"> Urgente</label>
+            </div>
+            <label>
+              Note operative
+              <textarea name="notes" rows="4">Richiesto sopralluogo telefonico. Cucina esclusa dal rimontaggio. Cliente disponibile nella fascia mattina.</textarea>
+            </label>
+          </section>
+
+          <section class="form-section" aria-labelledby="prezzoTitle">
+            <div class="section-title">
+              <span class="step">4</span>
+              <h2 id="prezzoTitle">Prezzo</h2>
+            </div>
+            <div class="field-grid">
+              <label>
+                Sconto EUR
+                <input name="discount" type="number" min="0" max="5000" value="80">
+              </label>
+              <label>
+                IVA
+                <select name="vatMode">
+                  <option value="22" selected>22%</option>
+                  <option value="10">10%</option>
+                  <option value="0">0%</option>
+                </select>
+              </label>
+            </div>
+          </section>
+        </form>
+      </aside>
+
+      <section class="workspace" aria-label="Anteprima preventivo">
+        <section class="hero-strip">
+          <img src="assets/atlantico-truck.jpg" alt="Camion Atlantico Traslochi">
+          <div class="hero-copy">
+            <p class="eyebrow">Atlantico Traslochi SRL</p>
+            <h2>Preventivi generati da form, revisionati prima dell'invio.</h2>
+          </div>
+        </section>
+
+        <section class="summary-row" aria-label="Riepilogo">
+          <article>
+            <span>Preventivo</span>
+            <strong id="quoteNumber">ATL-0000</strong>
+          </article>
+          <article>
+            <span>Totale</span>
+            <strong id="quoteTotal">EUR 0</strong>
+          </article>
+          <article>
+            <span>Stato</span>
+            <strong id="riskStatus">Bozza</strong>
+          </article>
+          <article>
+            <span>Scadenza</span>
+            <strong id="validUntil">-</strong>
+          </article>
+        </section>
+
+        <div class="tabs" role="tablist" aria-label="Anteprime">
+          <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="quote">Preventivo</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-tab="email">Email</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-tab="workflow">Workflow</button>
+        </div>
+
+        <section class="preview-shell">
+          <div class="toolbar" aria-label="Azioni bozza">
+            <button class="button primary" id="approveSend" type="button">Approva invio</button>
+            <button class="button" id="needsEdit" type="button">Da rivedere</button>
+            <button class="button ghost" id="copyEmail" type="button">Copia email</button>
+          </div>
+
+          <div class="tab-panel active" id="quotePanel" role="tabpanel">
+            <article class="paper" id="quotePaper">
+              <header class="paper-header">
+                <img src="assets/atlantico-logo.png" alt="Atlantico Traslochi">
+                <div>
+                  <strong>Atlantico Traslochi SRL</strong>
+                  <span>Via Nazario Sauro 33, 20900 Monza MB</span>
+                  <span>P. IVA 07135680960</span>
+                </div>
+              </header>
+
+              <div class="document-title">
+                <div>
+                  <p class="eyebrow">Preventivo</p>
+                  <h2 id="docQuoteNumber">ATL-0000</h2>
+                </div>
+                <div class="document-meta">
+                  <span id="docDate">Data: -</span>
+                  <span id="docValidity">Validita: -</span>
+                </div>
+              </div>
+
+              <div class="doc-grid">
+                <div>
+                  <h3>Cliente</h3>
+                  <p id="docClient">-</p>
+                  <p id="docContact">-</p>
+                </div>
+                <div>
+                  <h3>Tratta</h3>
+                  <p id="docRoute">-</p>
+                  <p id="docMoveDate">-</p>
+                </div>
+              </div>
+
+              <table class="line-items">
+                <thead>
+                  <tr>
+                    <th>Voce</th>
+                    <th>Dettaglio</th>
+                    <th>Importo</th>
+                  </tr>
+                </thead>
+                <tbody id="lineItems"></tbody>
+              </table>
+
+              <section class="doc-notes">
+                <h3>Note e condizioni</h3>
+                <p id="docNotes">-</p>
+                <ul id="riskList"></ul>
+              </section>
+
+              <footer class="paper-footer">
+                <div>
+                  <span>Subtotale</span>
+                  <strong id="subtotalAmount">EUR 0</strong>
+                </div>
+                <div>
+                  <span>IVA</span>
+                  <strong id="vatAmount">EUR 0</strong>
+                </div>
+                <div class="grand-total">
+                  <span>Totale preventivo</span>
+                  <strong id="grandTotalAmount">EUR 0</strong>
+                </div>
+              </footer>
+            </article>
+          </div>
+
+          <div class="tab-panel" id="emailPanel" role="tabpanel">
+            <article class="email-preview">
+              <header>
+                <span>Da: info@atlanticotraslochi.com</span>
+                <span id="emailTo">A: -</span>
+                <strong id="emailSubject">Oggetto: Preventivo</strong>
+              </header>
+              <pre id="emailBody"></pre>
+              <div class="attachment-row">
+                <span>PDF allegato</span>
+                <strong id="attachmentName">preventivo.pdf</strong>
+              </div>
+            </article>
+          </div>
+
+          <div class="tab-panel" id="workflowPanel" role="tabpanel">
+            <div class="workflow">
+              <article class="workflow-step done">
+                <span>01</span>
+                <strong>Form compilato</strong>
+                <p>Dati cliente salvati in registro preventivi.</p>
+              </article>
+              <article class="workflow-step done">
+                <span>02</span>
+                <strong>Documento creato</strong>
+                <p>Template Google Docs compilato con i campi del form.</p>
+              </article>
+              <article class="workflow-step current" id="reviewStep">
+                <span>03</span>
+                <strong>Revisione titolare</strong>
+                <p id="reviewCopy">Anteprima pronta per controllo e approvazione.</p>
+              </article>
+              <article class="workflow-step">
+                <span>04</span>
+                <strong>Invio cliente</strong>
+                <p>Email con PDF e testo personalizzato.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
