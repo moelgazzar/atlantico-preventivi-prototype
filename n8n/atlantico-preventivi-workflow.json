@@ -1,0 +1,59 @@
+{
+  "name": "Atlantico Preventivi Prototype API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atlantico-preventivi-prototype-20260529",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "9f07cb14-f75b-4e3f-a2fb-d5a394c7f3d1",
+      "name": "Quote Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "3c6f56ef-3df2-462b-b0d4-cf504730d4f7"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const incoming = $input.first().json;\nconst body = incoming.body || incoming;\nconst payload = typeof body === 'string' ? JSON.parse(body) : body;\nconst data = payload.quote || payload;\n\nconst serviceTypes = {\n  full: { label: 'Trasloco chiavi in mano', detail: 'Smontaggio, imballaggio, carico, trasporto, scarico e rimontaggio', base: 1180 },\n  standard: { label: 'Trasloco standard', detail: 'Carico, trasporto, scarico e supporto operativo', base: 780 },\n  transport: { label: 'Solo trasporto', detail: 'Trasporto con furgone e conducente', base: 420 },\n  lift: { label: 'Noleggio autoscala', detail: 'Autoscala con operatore per movimentazione esterna', base: 350 },\n  disposal: { label: 'Sgombero / smaltimento', detail: 'Ritiro e conferimento materiale ingombrante', base: 520 },\n};\n\nconst extras = [\n  ['packing', 'Imballaggio fragili', 'Materiali e protezione oggetti delicati', 180],\n  ['assembly', 'Smontaggio e rimontaggio', 'Mobili principali esclusa cucina complessa', 260],\n  ['liftAccess', 'Autoscala', 'Accesso esterno o piano alto senza ascensore', 220],\n  ['permits', 'Permessi suolo pubblico', 'Stima gestione area carico/scarico', 95],\n  ['storage', 'Deposito mobili', 'Prima settimana di deposito', 160],\n  ['urgent', 'Urgenza', 'Organizzazione con breve preavviso', 120],\n];\n\nfunction num(value, fallback = 0) {\n  const parsed = Number(value);\n  return Number.isFinite(parsed) ? parsed : fallback;\n}\n\nfunction money(value) {\n  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Math.max(0, value));\n}\n\nfunction dateText(date) {\n  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Rome' }).format(date);\n}\n\nfunction addDays(date, days) {\n  const copy = new Date(date.getTime());\n  copy.setDate(copy.getDate() + num(days, 15));\n  return copy;\n}\n\nfunction floorCost() {\n  let total = 0;\n  if (data.originElevator === 'no') total += Math.max(0, num(data.originFloor)) * 55;\n  if (data.destElevator === 'no') total += Math.max(0, num(data.destFloor)) * 55;\n  return total;\n}\n\nconst selected = serviceTypes[data.serviceType] || serviceTypes.standard;\nconst lineItems = [\n  { label: selected.label, detail: selected.detail, amount: selected.base },\n  { label: 'Volume stimato', detail: `${num(data.volume)} mc`, amount: num(data.volume) * 22 },\n  { label: 'Distanza', detail: `${num(data.distance)} km stimati`, amount: num(data.distance) * 1.8 },\n  { label: 'Scatole', detail: `${num(data.boxes)} colli indicativi`, amount: num(data.boxes) * 2.5 },\n];\n\nconst accessCost = floorCost();\nif (accessCost > 0) {\n  lineItems.push({ label: 'Accesso piani', detail: 'Maggiorazione per piano senza ascensore', amount: accessCost });\n}\n\nfor (const [key, label, detail, amount] of extras) {\n  if (data[key] === true || data[key] === 'true' || data[key] === 'on') lineItems.push({ label, detail, amount });\n}\n\nconst discount = num(data.discount);\nif (discount > 0) lineItems.push({ label: 'Sconto commerciale', detail: 'Applicato in fase di revisione', amount: -discount });\n\nconst subtotal = Math.max(0, lineItems.reduce((sum, item) => sum + item.amount, 0));\nconst vatRate = num(data.vatMode, 22);\nconst vat = subtotal * (vatRate / 100);\nconst total = subtotal + vat;\n\nconst riskFlags = [];\nif (data.originElevator === 'no' && num(data.originFloor) >= 3) riskFlags.push('Partenza al terzo piano o superiore senza ascensore: verificare accesso e autoscala.');\nif (data.destElevator === 'no' && num(data.destFloor) >= 3) riskFlags.push('Arrivo al terzo piano o superiore senza ascensore: verificare accesso e autoscala.');\nif (data.liftAccess || data.serviceType === 'lift') riskFlags.push('Autoscala richiesta: controllare spazio di manovra, balcone/finestra e permessi.');\nif (data.permits) riskFlags.push('Permessi suolo pubblico inclusi come stima: confermare comune e tempistiche.');\nif (data.urgent) riskFlags.push('Richiesta urgente: confermare disponibilita squadra e mezzi.');\nif (num(data.volume) >= 35) riskFlags.push('Volume elevato: valutare sopralluogo prima di inviare offerta finale.');\nif (num(data.distance) >= 150) riskFlags.push('Tratta lunga: verificare tempi guida, carburante, pedaggi e pernottamenti.');\n\nconst now = new Date();\nconst dateCode = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(now).replaceAll('-', '');\nconst executionSuffix = String($execution.id || Date.now()).replace(/\\D/g, '').slice(-4).padStart(4, '0');\nconst quoteNumber = data.quoteNumber || `ATL-${dateCode}-${executionSuffix}`;\nconst validUntil = dateText(addDays(now, data.validDays));\nconst firstName = String(data.clientName || 'Cliente').trim().split(/\\s+/)[0] || 'Cliente';\nconst totalText = money(total);\n\nconst emailBody = `Gentile ${firstName},\\n\\nin allegato trova il preventivo ${quoteNumber} per il servizio di trasloco richiesto.\\n\\nIl totale stimato e ${totalText} IVA inclusa. Il preventivo resta valido fino al ${validUntil}.\\n\\nPer confermare o modificare il servizio puo rispondere direttamente a questa email oppure contattarci al numero 039 2001106.\\n\\nCordiali saluti,\\nAtlantico Traslochi SRL`;\n\nreturn [{\n  json: {\n    ok: true,\n    source: 'n8n',\n    status: riskFlags.length ? 'needs_review' : 'ready_to_send',\n    workflowName: 'Atlantico Preventivi Prototype API',\n    executionId: $execution.id,\n    receivedAt: now.toISOString(),\n    quoteNumber,\n    validUntil,\n    customer: {\n      name: data.clientName || '',\n      email: data.clientEmail || '',\n      phone: data.clientPhone || '',\n    },\n    route: {\n      origin: data.origin || '',\n      destination: data.destination || '',\n      moveDate: data.moveDate || '',\n    },\n    lineItems,\n    totals: {\n      subtotal,\n      vatRate,\n      vat,\n      total,\n      subtotalText: money(subtotal),\n      vatText: money(vat),\n      totalText,\n    },\n    riskFlags,\n    email: {\n      to: data.clientEmail || '',\n      subject: `Preventivo ${quoteNumber} - Atlantico Traslochi`,\n      body: emailBody,\n      attachmentName: `${quoteNumber.toLowerCase()}-${String(data.clientName || 'cliente').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.pdf`,\n    },\n  }\n}];"
+      },
+      "id": "5960aa31-82db-4fe9-a717-02cf6f34ca6d",
+      "name": "Build Preventivo Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Quote Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Preventivo Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Rome"
+  },
+  "staticData": null,
+  "pinData": {}
+}

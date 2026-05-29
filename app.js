@@ -2,6 +2,7 @@
   const form = document.querySelector("#quoteForm");
   const toast = document.querySelector("#toast");
   const syncStatus = document.querySelector("#syncStatus");
+  const N8N_WEBHOOK_URL = "https://mos-n8n.gleeze.com/webhook/atlantico-preventivi-prototype-20260529";
 
   const serviceTypes = {
     full: {
@@ -264,6 +265,28 @@ Atlantico Traslochi SRL`;
     syncStatus.style.color = "var(--green)";
   }
 
+  async function postToN8n(action) {
+    const quote = {
+      ...getData(),
+      quoteNumber: $(selectors.quoteNumber).textContent,
+    };
+
+    await fetch(N8N_WEBHOOK_URL, {
+      method: "POST",
+      mode: "no-cors",
+      keepalive: true,
+      headers: {
+        "Content-Type": "text/plain;charset=UTF-8",
+      },
+      body: JSON.stringify({
+        action,
+        prototypeUrl: window.location.href,
+        submittedAt: new Date().toISOString(),
+        quote,
+      }),
+    });
+  }
+
   function slug(value) {
     return String(value)
       .toLowerCase()
@@ -304,15 +327,30 @@ Atlantico Traslochi SRL`;
     window.print();
   });
 
-  $("#approveSend").addEventListener("click", () => {
-    syncStatus.textContent = "Approvato per invio";
-    syncStatus.style.color = "var(--blue)";
-    showToast("Invio simulato: in n8n questo trigger spedirebbe email e PDF.");
+  $("#approveSend").addEventListener("click", async () => {
+    const button = $("#approveSend");
+    button.disabled = true;
+    syncStatus.textContent = "Invio a n8n...";
+    syncStatus.style.color = "var(--amber)";
+
+    try {
+      await postToN8n("approved_preview");
+      syncStatus.textContent = "Approvato e inviato a n8n";
+      syncStatus.style.color = "var(--blue)";
+      showToast("Webhook n8n ricevuto: bozza preventivo registrata.");
+    } catch {
+      syncStatus.textContent = "Approvato localmente";
+      syncStatus.style.color = "var(--red)";
+      showToast("Invio n8n non riuscito. La bozza locale resta disponibile.");
+    } finally {
+      button.disabled = false;
+    }
   });
 
-  $("#needsEdit").addEventListener("click", () => {
+  $("#needsEdit").addEventListener("click", async () => {
     syncStatus.textContent = "Richiede modifiche";
     syncStatus.style.color = "var(--red)";
+    await postToN8n("needs_edit").catch(() => {});
     showToast("Bozza marcata da rivedere.");
   });
 

@@ -7,6 +7,7 @@ Static prototype for a preventivo automation flow:
 - email preview with PDF attachment name
 - approval / needs-edit demo state
 - print-to-PDF flow
+- live n8n webhook sync on approval
 
 Assets were sourced from the public Atlantico Traslochi website for demo purposes.
 
